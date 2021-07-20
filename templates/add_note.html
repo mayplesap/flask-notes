@@ -1,0 +1,25 @@
+<!-- Block title-->
+{% block title %}
+<h1>Add Note</h1>
+{% endblock %}
+
+<!-- Block content-->
+{% block content %}
+<form class="form" id="add-note-form" method="POST">
+  {{form.hidden_tag()}}
+  <!-- generates CSRF token-->
+
+  {% for field in form if field.widget.input_type != "hidden" %}
+
+  <div>
+    {{field.label}} {{field}}
+
+    <!--Show errors-->
+    {% for error in field.errors %} {{error}} {% endfor %}
+  </div>
+  {% endfor %}
+
+  <button class="btn btn-primary">Add</button>
+</form>
+<!-- End block-->
+{% endblock %}
