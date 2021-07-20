@@ -1,4 +1,4 @@
-{% extends base.html %}
+{% extends 'base.html' %}
 
 <!-- Block title-->
 {% block title %}
@@ -7,13 +7,13 @@
 
 <!-- Block content-->
 {% block content %}
-<form id="register-form" method="POST">
+<form class="form" id="register-form" method="POST">
   {{form.hidden_tag()}}
   <!-- generates CSRF token-->
 
   {% for field in form if field.widget.input_type != "hidden" %}
 
-  <div class="form-control">
+  <div>
     {{field.label}} {{field}}
 
     <!--Show errors-->

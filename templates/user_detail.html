@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1 class="display-4">Welcome back {{ user.first_name }}</h1>
+  <div class="text-center">
+      <h3>User Details</h3>
+      <p>Name: {{ user.first_name }} {{ user.last_name }}</p>
+      <p>Username: {{ user.username }}</p>
+      <p>Email: {{ user.email }}</p>
+      <a href="/logout" class="btn btn-primary">Logout</a>
+  </div>
+  
+{% endblock %}

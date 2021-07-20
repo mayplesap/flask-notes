@@ -23,7 +23,7 @@ db.create_all()
 def root():
     """Redirects to register page."""
 
-    redirect ("/register")
+    return redirect("/register")
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
@@ -33,13 +33,17 @@ def register():
 
     if form.validate_on_submit():
 
-        user = User(username=form.username.data, password=form.password.data, email=form.email.data, first_name=form.first_name.data, last_name=form.last_name.data)
+        user = User.register(username=form.username.data, 
+                             pwd=form.password.data, 
+                             email=form.email.data, 
+                             first_name=form.first_name.data, 
+                             last_name=form.last_name.data)
 
         db.session.add(user)
         db.session.commit()
 
         session['username'] = user.username
-        return redirect('/secret')
+        return redirect(f'/users/{user.username}')
 
 
     return render_template('register.html', form=form)
@@ -60,10 +64,43 @@ def login():
 
         if user:
             session['username'] = user.username
-            return redirect('/secret')
+            return redirect(f'/users/{username}')
         else:
             form.username.errors = ['Bad username/password']
 
 
     return render_template('login.html', form=form)
+
+# @app.route("/secret")
+# def secret():
+#     """If authenticated, displays secret.html otherwise redirects to /login"""
+
+#     if "username" not in session:
+#         flash("You must be logged in!")
+#         return redirect("/login")
+
+#     return render_template("secret.html")
+
+@app.route("/logout")
+def logout():
+    """Logs user out and redirects to /login"""
+
+    session.pop("username", None)
+
+    return redirect("/login") #login for now unless homepage
+
+@app.route("/users/<username>")
+def user_detail(username):
+    """TODO"""
+
+    user = User.query.get(username)
+
+    if 'username' not in session:
+        flash("You must be logged in!")
+        return redirect("/login")
+    elif session['username'] != username:
+        flash("Not your account!!")
+        return redirect(f"/users/{session['username']}")
+
+    return render_template("user_detail.html", user=user)
 
