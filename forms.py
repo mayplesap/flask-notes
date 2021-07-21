@@ -24,3 +24,9 @@ class AddNoteForm(FlaskForm):
 
     title = StringField("Title", validators=[InputRequired(), Length(max=100)])
     content = TextAreaField("Content", validators=[InputRequired()])
+
+class UpdateNoteForm(FlaskForm):
+    """Update note to user notes"""
+
+    title = StringField("Title", validators=[InputRequired(), Length(max=100)])
+    content = TextAreaField("Content", validators=[InputRequired()])

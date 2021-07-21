@@ -1,10 +1,10 @@
 """Flask app for Flask note app."""
 
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, redirect, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from models import db, connect_db, User, Note
 
-from forms import AddNoteForm, LoginForm, RegisterForm
+from forms import AddNoteForm, LoginForm, RegisterForm, UpdateNoteForm
 
 app = Flask(__name__)
 
@@ -15,6 +15,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 
 toolbar = DebugToolbarExtension(app)
+
+SESSION_USERNAME = 'username'
 
 connect_db(app)
 db.create_all()
@@ -28,7 +30,10 @@ def root():
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     """Displays a form to register a new user"""
-    
+
+    if 'username' in session:
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+
     form = RegisterForm()
 
     if form.validate_on_submit():
@@ -42,7 +47,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        session['username'] = user.username
+        session[SESSION_USERNAME] = user.username
         return redirect(f'/users/{user.username}')
 
 
@@ -53,6 +58,9 @@ def register():
 def login():
     """Displays a form to login a new user"""
     
+    if 'username' in session:
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -63,7 +71,7 @@ def login():
         user = User.authenticate(username, password)
 
         if user:
-            session['username'] = user.username
+            session[SESSION_USERNAME] = user.username
             return redirect(f'/users/{username}')
         else:
             form.username.errors = ['Bad username/password']
@@ -87,58 +95,63 @@ def logout():
 
     session.pop("username", None)
 
-    return redirect("/login") #login for now unless homepage
+    return redirect("/login")
+
+############################### USER ###############################
 
 @app.route("/users/<username>")
 def user_detail(username):
-    """TODO"""
+    """Displays user detail if authenticated & authorized"""
 
-    user = User.query.get(username)
-    notes = user.notes
+    user = User.query.get_or_404(username)
 
     if 'username' not in session:
         flash("You must be logged in!")
         return redirect("/login")
-    elif session['username'] != username:
+    elif session[SESSION_USERNAME] != username:
         flash("Not your account!!")
-        return redirect(f"/users/{session['username']}")
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+    
+    notes = user.notes
 
     return render_template("user_detail.html", user=user, notes=notes)
 
-@app.route('/users/<username>/delete')
+@app.route('/users/<username>/delete', methods=["POST"])
 def delete_user(username):
-    """TODO"""
-    user = User.query.get(username)
-    notes = user.notes
+    """Deletes user and user's notes if authenticated & authorized"""
+
+    user = User.query.get_or_404(username)
 
     if 'username' not in session:
         flash("You must be logged in!")
         return redirect("/login")
-    elif session['username'] != username:
+    elif session[SESSION_USERNAME] != username:
         flash("Not your account!!")
-        return redirect(f"/users/{session['username']}")
-
-    db.session.delete(notes)
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+    
+    Note.query.filter(Note.owner == username).delete()
     db.session.delete(user)
-    session.pop("username", None)
-
     db.session.commit()
-    return redirect('/')
+    session.pop("username", None)
+    # session.clear()
+
+    flash("User successfully deleted")
+    return redirect('/register')
 
 ############################### NOTES ###############################
 
 @app.route('/users/<username>/notes/add', methods=['GET', 'POST'])
 def add_note(username):
-    """TODO"""
-
-    form = AddNoteForm()
+    """Display add_note.html and lets user add a note if authenticated & authorized"""
 
     if 'username' not in session:
         flash("You must be logged in!")
         return redirect("/login")
-    elif session['username'] != username:
+    elif session[SESSION_USERNAME] != username:
         flash("Not your account!!")
-        return redirect(f"/users/{session['username']}")
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+    
+    form = AddNoteForm()
 
     if form.validate_on_submit():
         note = Note(title=form.title.data, content=form.content.data, owner=username)
@@ -146,7 +159,49 @@ def add_note(username):
         db.session.add(note)
         db.session.commit()
 
-        return redirect(f'user/{username}')
+        return redirect(f'/users/{username}')
 
     return render_template('add_note.html', form=form)
 
+@app.route('/notes/<int:note_id>/update', methods=["GET","POST"])
+def update_note(note_id):
+    """Display update_note.html and updates if authenticated & authorized"""
+
+    note = Note.query.get_or_404(note_id)
+
+    if 'username' not in session:
+        flash("You must be logged in!")
+        return redirect("/login")
+    elif session[SESSION_USERNAME] != note.owner:
+        flash("Not your account!!")
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+
+    form = UpdateNoteForm(obj=note)
+
+    if form.validate_on_submit():
+        note.title = form.title.data
+        note.content = form.content.data
+
+        db.session.commit()
+
+        return redirect(f'/users/{note.owner}')
+
+    return render_template('update_note.html', note=note, form=form)
+
+@app.route('/notes/<int:note_id>/delete', methods=["POST"])
+def delete_note(note_id):
+    """Delete user's note"""
+
+    note = Note.query.get_or_404(note_id)
+
+    if 'username' not in session:
+        flash("You must be logged in!")
+        return redirect("/login")
+    elif session[SESSION_USERNAME] != note.owner:
+        flash("Not your account!!")
+        return redirect(f"/users/{session[SESSION_USERNAME]}")
+
+    db.session.delete(note)
+    db.session.commit()
+
+    return redirect(f"/users/{session[SESSION_USERNAME]}")
