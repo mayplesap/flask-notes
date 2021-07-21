@@ -17,6 +17,9 @@
 </ul>
 <div class="text-center">
     <form action="/users/{{user.username}}/delete" method="POST">
+        {{form.hidden_tag()}}
+        <!-- generates CSRF token-->
+        {% for field in form if field.widget.input_type != "hidden" %}
         <a href="/users/{{user.username}}/notes/add" class="btn btn-info">Add Note</a>
         <button class="btn btn-danger">Delete User</button>
     </form>

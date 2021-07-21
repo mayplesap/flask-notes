@@ -19,14 +19,11 @@ class LoginForm(FlaskForm):
     password = PasswordField("Password", validators=[InputRequired()])
 
 
-class AddNoteForm(FlaskForm):
-    """Add note to user notes"""
+class NoteForm(FlaskForm):
+    """Add/update note to user notes"""
 
     title = StringField("Title", validators=[InputRequired(), Length(max=100)])
     content = TextAreaField("Content", validators=[InputRequired()])
 
-class UpdateNoteForm(FlaskForm):
-    """Update note to user notes"""
-
-    title = StringField("Title", validators=[InputRequired(), Length(max=100)])
-    content = TextAreaField("Content", validators=[InputRequired()])
+class DeleteForm(FlaskForm):
+    """Is blank"""

@@ -4,7 +4,7 @@ from flask import Flask, render_template, redirect, session, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from models import db, connect_db, User, Note
 
-from forms import AddNoteForm, LoginForm, RegisterForm, UpdateNoteForm
+from forms import NoteForm, LoginForm, RegisterForm, DeleteForm
 
 app = Flask(__name__)
 
@@ -112,9 +112,13 @@ def user_detail(username):
         flash("Not your account!!")
         return redirect(f"/users/{session[SESSION_USERNAME]}")
     
+    form = DeleteForm()
     notes = user.notes
 
-    return render_template("user_detail.html", user=user, notes=notes)
+    if form.validate_on_submit():
+        return redirect(f"/users/{username}/delete")
+
+    return render_template("user_detail.html", user=user, notes=notes, form=form)
 
 @app.route('/users/<username>/delete', methods=["POST"])
 def delete_user(username):
@@ -151,7 +155,7 @@ def add_note(username):
         flash("Not your account!!")
         return redirect(f"/users/{session[SESSION_USERNAME]}")
     
-    form = AddNoteForm()
+    form = NoteForm()
 
     if form.validate_on_submit():
         note = Note(title=form.title.data, content=form.content.data, owner=username)
@@ -176,7 +180,7 @@ def update_note(note_id):
         flash("Not your account!!")
         return redirect(f"/users/{session[SESSION_USERNAME]}")
 
-    form = UpdateNoteForm(obj=note)
+    form = NoteForm(obj=note)
 
     if form.validate_on_submit():
         note.title = form.title.data
@@ -200,8 +204,11 @@ def delete_note(note_id):
     elif session[SESSION_USERNAME] != note.owner:
         flash("Not your account!!")
         return redirect(f"/users/{session[SESSION_USERNAME]}")
+    
+    form = DeleteForm()
 
-    db.session.delete(note)
-    db.session.commit()
+    if form.validate_on_submit():
+        db.session.delete(note)
+        db.session.commit()
 
     return redirect(f"/users/{session[SESSION_USERNAME]}")
